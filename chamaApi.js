@@ -278,3 +278,91 @@ btnEditarUsuario.addEventListener('click', function () {
     // Chama a função para atualizar o usuário.
     atualizarUsuario(iddoUsuario, nome, email, disciplina);
 });
+
+// Variáveis para controlar o limite de chamadas
+let chamadas = 0;
+const limiteChamadas = 5; // Limite de 5 chamadas
+const intervaloLimite = 10000; // 10 segundos
+
+// Armazenar a hora da última vez que as chamadas foram resetadas
+let tempoUltimaChamada = Date.now();
+
+// Função para chamar a API com rate limiting
+function chamarAPIComLimite() {
+    const agora = Date.now();
+    // Verificar se o intervalo de tempo passou
+    if (agora - tempoUltimaChamada > intervaloLimite) {
+        chamadas = 0; // Resetar o contador
+        tempoUltimaChamada = agora;
+    }
+
+    // Verificar se atingiu o limite de chamadas
+    if (chamadas < limiteChamadas) {
+        chamadas++; // Incrementar o contador de chamadas
+        buscarDadosEPreencherTabela(); // Chamar a função para buscar dados
+    } else {
+        alert('Limite de chamadas atingido. Por favor, aguarde um momento.');
+    }
+}
+
+// Adicionar o ouvinte de evento para o botão
+botaoChamarAPI.addEventListener('click', chamarAPIComLimite);
+
+// Função para registrar logs de auditoria
+function registrarLog(acao, dados) {
+    const dataHora = new Date().toISOString(); // Data e hora atual
+    console.log(`[AUDITORIA] ${dataHora} - Ação: ${acao}, Dados: ${JSON.stringify(dados)}`);
+
+    // Se preferir enviar os logs para o servidor, pode usar algo como:
+    // axios.post('http://seu-servidor.com/logs', { acao, dados, dataHora })
+}
+
+// Exemplo de log para a função de cadastro de usuário
+function cadastrarUsuario(nome, email, disciplina, senha) {
+    console.log('Dados capturados para cadastro:');
+    console.log('Nome:', nome);
+    console.log('Email:', email);
+    console.log('Disciplina:', disciplina);
+    console.log('Senha:', senha);
+
+    // Criando o objeto novoUsuario
+    const novoUsuario = {
+        nome: nome,
+        email: email,
+        disciplina: disciplina,
+        senha: senha
+    };
+
+    // Registrar log de auditoria antes de fazer a requisição
+    registrarLog('Cadastro de Usuário', novoUsuario);
+
+    // Chamada de API para cadastrar o usuário
+    axios.post('http://infopguaifpr.com.br:3052/cadastrarUsuario', novoUsuario, {
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(response => {
+        console.log('Usuário cadastrado com sucesso:', response.data);
+        $('#cadastrarUsuario').modal('hide');
+        buscarDadosEPreencherTabela();
+    })
+    .catch(error => {
+        console.error('Erro ao cadastrar usuário:', error);
+    });
+}
+
+// Exemplo de log para a função de deleção de usuário
+function deletarUsuario(idUsuario) {
+    // Registrar log de auditoria antes de fazer a requisição
+    registrarLog('Exclusão de Usuário', { idUsuario });
+
+    // Chamada de API para excluir o usuário
+    axios.delete(`http://infopguaifpr.com.br:3052/deletarUsuario/${idUsuario}`)
+    .then(response => {
+        console.log('Usuário excluído com sucesso');
+        alert('Usuário excluído com sucesso');
+        buscarDadosEPreencherTabela();
+    })
+    .catch(error => {
+        console.error('Erro ao deletar usuário:', error);
+    });
+}
